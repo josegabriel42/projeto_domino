@@ -13,6 +13,8 @@ let mao_bot = [];
 let mao_jogador = [];
 let qnt_pecas_coletadas_bot = 0;
 let qnt_pecas_coletadas_jogador = 0;
+let qnt_pecas_atual_jogador = 0;
+let qnt_pecas_atual_bot = 0;
 let peca_inicial = null;
 let pecas_mesa = [];
 let cemiterio = [];
@@ -35,39 +37,23 @@ function iniciar_jogo() {
     // Embaralha as peças
     pecas = embaralhar_pecas(pecas);
 
-    // Distribui as peças na mão do bot
-    pecas[0].numero_peca = qnt_pecas_coletadas_bot;
-    mao_bot.push(pecas[0]);
-    desenhar_peca_mao_bot();
-    qnt_pecas_coletadas_bot++;
+    // Distribui as peças
+    pecas.forEach((peca, index) => {
+        if(index < 3){
+            pecas[index].numero_peca = qnt_pecas_coletadas_bot;
+            mao_bot.push(pecas[index]);
+            desenhar_peca_mao_bot(peca);
+            qnt_pecas_coletadas_bot++;
+            qnt_pecas_atual_bot++;
+        }else if(index < 6) {
+            pecas[index].numero_peca = qnt_pecas_coletadas_jogador;
+            mao_jogador.push(pecas[index]);
+            desenhar_peca_mao_jogador(peca);
+            qnt_pecas_coletadas_jogador++;
+            qnt_pecas_atual_jogador++;
+        }
+    });
 
-    pecas[2].numero_peca = qnt_pecas_coletadas_bot;
-    mao_bot.push(pecas[2]);
-    desenhar_peca_mao_bot();
-    qnt_pecas_coletadas_bot++;
-
-    pecas[4].numero_peca = qnt_pecas_coletadas_bot;
-    mao_bot.push(pecas[4]);
-    desenhar_peca_mao_bot();
-    qnt_pecas_coletadas_bot++;
-
-    // Distribui as peças na mão do jogador
-    pecas[1].numero_peca = qnt_pecas_coletadas_jogador;
-    mao_jogador.push(pecas[1]);
-    desenhar_peca_mao_jogador(pecas[1]);
-    qnt_pecas_coletadas_jogador++;
-
-    pecas[3].numero_peca = qnt_pecas_coletadas_jogador;
-    mao_jogador.push(pecas[3]);
-    desenhar_peca_mao_jogador(pecas[3]);
-    qnt_pecas_coletadas_jogador++;
-
-    pecas[5].numero_peca = qnt_pecas_coletadas_jogador;
-    mao_jogador.push(pecas[5]);
-    desenhar_peca_mao_jogador(pecas[5]);
-    qnt_pecas_coletadas_jogador++;
-
-    // Peça inicial e cemitério
     pecas_mesa.push(pecas[6]);
     desenhar_peca_mesa(null, pecas[6], [])
     cemiterio = [pecas[7], pecas[8], pecas[9]];
@@ -92,20 +78,27 @@ function iniciar_jogo() {
 
 function finalizarPartida() {
     const campo_mensagem = document.getElementById("mensagem_vencedor");
-    const area_jogo = document.getElementById("area_jogo");
+    const area_mesa = document.getElementById("area_mesa");
     let bot = jogador = 0;
     
     mao_bot.forEach(peca => {
         if(peca != null)
-            bot += peca.valor_direita + peca.valor_esquerda;
+            bot += peca.valor_direita + peca.valor_esquerda + 1;
     });
 
     mao_jogador.forEach(peca => {
         if(peca != null)
-            jogador += peca.valor_direita + peca.valor_esquerda;
+            jogador += peca.valor_direita + peca.valor_esquerda + 1;
     });
 
-    vencedor = bot < jogador ? "Bot" : "Jogador";
+    if(bot < jogador) {
+        vencedor = "Bot";
+        area_mesa.style.backgroundColor = "red";
+    }else {
+        vencedor = "Jogador";
+        area_mesa.style.backgroundColor = "dodgerblue";
+    }
+
     campo_mensagem.innerHTML = `<h2 style="text-align:center">Vencedor ${vencedor}</h2>`;
 }
 
@@ -120,11 +113,11 @@ function rodada_bot() {
         }
     }
 
-    if(verificar_rodada(true)) {
+    if(!tem_ganhador && verificar_rodada(true)) {
         // Jogador escolhe a sua jogada
     }else {
         // Bot vai verificar a rodada e, se possível, realizar um movimento novamente
-        if(verificar_rodada(false)){
+        if(!tem_ganhador && verificar_rodada(false)){
             rodada_bot();
         }else {
             // Sem jogadas disponíveis. Fim da partida.
@@ -166,10 +159,12 @@ function verificar_rodada(vez_jogador){
             desenhar_peca_mao_jogador(peca_cemiterio);
             peca_cemiterio.numero_peca = qnt_pecas_coletadas_jogador;
             qnt_pecas_coletadas_jogador++;
+            qnt_pecas_atual_jogador++;
         }else {
             desenhar_peca_mao_bot(peca_cemiterio);
             peca_cemiterio.numero_peca = qnt_pecas_coletadas_bot;
             qnt_pecas_coletadas_bot++;
+            qnt_pecas_atual_bot++;
         }
 
         mao.push(peca_cemiterio);
@@ -238,6 +233,7 @@ function verificar_peca(peca_mao) {
      return movimentos;
 }
 
+// Atualiza as variáveis para poder realizar o movimento
 function marcar_movimento(vez_jogador, index_peca_mao, movimento) {
     let peca_mao = null;
     let temp = null;
@@ -246,12 +242,15 @@ function marcar_movimento(vez_jogador, index_peca_mao, movimento) {
         peca_mao = mao_jogador[index_peca_mao];
         mao_jogador[index_peca_mao] = null;
         remover_peca_mao_jogador(peca_mao.numero_peca);
-        tem_ganhador = mao_jogador.length == 0 ? true : false
+        qnt_pecas_atual_jogador--;
+        tem_ganhador = qnt_pecas_atual_jogador == 0 ? true : false
+        
     }else {
         peca_mao = mao_bot[index_peca_mao];
         mao_bot.splice(index_peca_mao, 1);
         remover_peca_mao_bot(peca_mao.numero_peca);
-        tem_ganhador = mao_bot.length == 0 ? true : false
+        qnt_pecas_atual_bot--;
+        tem_ganhador = qnt_pecas_atual_bot == 0 ? true : false
     }
 
     if(movimento[1] == 0)
@@ -283,19 +282,6 @@ function marcar_movimento(vez_jogador, index_peca_mao, movimento) {
     desenhar_peca_mesa(vez_jogador, peca_mao, movimento);
 }
 
-// Testando
-
-function testar() {
-    console.log("Peças:", pecas);
-    console.log("Bot:", mao_bot);
-    console.log("Jogador:", mao_jogador);
-    console.log("Mesa:", pecas_mesa);
-    console.log("Cemitério:", cemiterio);
-    console.log("Movimentos:", movimentos_disponiveis);
-    console.log("Vencedor:", vencedor);
-    console.log();
-}
-
 // Manipulação do DOM
 function desenhar_peca_mesa(vez_jogador, peca, movimento) {
     const area_mesa = document.getElementById("area_mesa");
@@ -306,6 +292,8 @@ function desenhar_peca_mesa(vez_jogador, peca, movimento) {
 
     if(vez_jogador !== null) 
         cor_peca = vez_jogador ? "peca_jogador" : "peca_bot";
+    else
+        cor_peca = "peca_inicial";
     
     // Peça em pé
     if(peca.valor_direita == peca.valor_esquerda) {
@@ -341,13 +329,22 @@ function desenhar_peca_mesa(vez_jogador, peca, movimento) {
 }
 
 function desenhar_peca_mao_bot(peca) {
-
+    const area_bot = document.getElementById("area_pecas_bot");
+    let index_peca = qnt_pecas_coletadas_bot;
+    area_bot.innerHTML += `<div onclick="" class="peca peca_em_pe" id="peca_bot_index_${index_peca}">
+                                <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
+                                    ?
+                                </div>
+                                <div class="pedaco_peca pedaco_peca_em_pe">
+                                    ?
+                                </div>
+                            </div>`;
 }
 
 function desenhar_peca_mao_jogador(peca) {
-    const area_mesa = document.getElementById("area_pecas_jogador");
+    const area_jogador = document.getElementById("area_pecas_jogador");
     let index_peca = qnt_pecas_coletadas_jogador;
-    area_mesa.innerHTML += `<div onclick="desenhar_area_movimentos(id)" class="peca peca_em_pe peca_mao_jogador" id="peca_jogador_index_${index_peca}">
+    area_jogador.innerHTML += `<div onclick="desenhar_area_movimentos(id)" class="peca peca_em_pe peca_mao_jogador" id="peca_jogador_index_${index_peca}">
                                 <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
                                     ${peca.valor_direita}
                                 </div>
@@ -358,8 +355,8 @@ function desenhar_peca_mao_jogador(peca) {
 }
 
 function remover_peca_mao_bot(index_peca_mao) {
-    // const peca = document.getElementById("peca_mao_bot_" + index_peca_mao);
-    // peca.remove();
+    const peca = document.getElementById("peca_bot_index_" + index_peca_mao);
+    peca.remove();
 }
 
 function remover_peca_mao_jogador(index_peca_mao) {
@@ -373,10 +370,7 @@ function desenhar_peca_cemiterio() {
     area_cemiterio.innerHTML = cemiterio.length;
 }
 
-function desenhar_area_movimentos(id_peca_mao){
-    if(tem_ganhador)
-        return;
-    
+function desenhar_area_movimentos(id_peca_mao){    
     const area_movimentos = document.getElementById("quadro_movimentos");
     let peca = null;
     area_movimentos.innerHTML = "";
@@ -410,11 +404,11 @@ function posicinar_na_mesa(id) {
     marcar_movimento(true, peca_origem, movimento);
     area_movimentos.innerHTML = "";
     
-    if(verificar_rodada(false)) {
+    if(!tem_ganhador && verificar_rodada(false)) {
         // Bot faz sua jogada
         rodada_bot();
     }else {
-        if(verificar_rodada(true)){
+        if(!tem_ganhador && verificar_rodada(true)){
             // Jogador escolhe a sua jogada
         }else {
             // Sem jogadas disponíveis. Fim da partida.
@@ -425,7 +419,4 @@ function posicinar_na_mesa(id) {
 }
 
 // Run
-
 iniciar_jogo();
-// rodada_teste();
-// testar();

@@ -1,3 +1,7 @@
+body {
+    background-color: whitesmoke;
+}
+
 .peca {
     display: inline-flex;
     border: 2px solid black;
@@ -59,6 +63,10 @@
     background-color: red;
 }
 
+.peca_inicial {
+    background-color: whitesmoke;
+}
+
 .mesa {
     display: flex;
     justify-content: center;
@@ -77,7 +85,7 @@
     height: 500px;
 }
 
-.area_pecas_adversario {
+.area_pecas_bot {
     display: flex;
     border: 2px solid red;
     height: 120px;
@@ -102,7 +110,15 @@
 }
 
 .area_inicial {
+    display: inline;
     text-align: center;
+}
+
+.area_cm {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .campo {
