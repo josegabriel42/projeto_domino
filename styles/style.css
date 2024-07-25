@@ -1,0 +1,119 @@
+.peca {
+    display: inline-flex;
+    border: 2px solid black;
+    text-align: center;
+    margin: 2px;
+}
+
+.peca_deitada {
+    width: 100px;
+    height: 50px;
+}
+
+.peca_em_pe {
+    flex-direction: column;
+    width: 50px;
+    height: 100px;
+}
+
+.pedaco_peca {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+
+.pedaco_peca_deitada {
+    width: 50%;
+    height: 100%;
+}
+
+.pedaco_peca_em_pe {
+    width: 100%;
+    height: 50%;   
+}
+
+.pedaco_peca_direita {
+    border-left: 2px solid black;
+}
+
+.pedaco_peca_cima {
+    border-bottom: 2px solid black;
+}
+
+.peca_mao_jogador:hover {
+    background-color: dodgerblue;
+    transition: all 1s;
+}
+
+.peca_area_movimento:hover {
+    background-color: chartreuse;
+    transition: all 1s;
+}
+
+.peca_jogador {
+    background-color: dodgerblue;
+}
+
+.peca_bot {
+    background-color: red;
+}
+
+.mesa {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    width: 80%;
+    border: 2px solid black;
+}
+
+.area_jogo {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 500px;
+}
+
+.area_pecas_adversario {
+    display: flex;
+    border: 2px solid red;
+    height: 120px;
+    width: 40%;
+}
+
+.area_pecas_jogador {
+    display: flex;
+    border: 2px solid steelblue;
+    height: 120px;
+    width: 40%;
+}
+
+.area_cemiterio {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid blueviolet;
+    height: 40px;
+    width: 100px;
+}
+
+.area_inicial {
+    text-align: center;
+}
+
+.campo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center  ;
+}
+
+.quadro_movimentos {
+    border: 1px solid green;
+    max-height: 800px;
+    max-width: 400px;
+}
