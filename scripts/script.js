@@ -8,6 +8,7 @@ class Peca {
     }
 }
 
+let num_final_pecas = 6; // Controla qual o tipo de dominó (um dominó padrão é 6, ou seja, os numeros são de 0 a 6)
 let pecas = [];
 let mao_bot = [];
 let mao_jogador = [];
@@ -29,38 +30,40 @@ let vencedor = "";
 function iniciar_jogo() {
     // Gera as peças
     pecas = [];
-    for(let i = 0; i < 4; i++) {
-        for(let j = i; j < 4; j++)
+    for(let i = 0; i <= num_final_pecas; i++) {
+        for(let j = i; j <= num_final_pecas; j++)
             pecas.push(new Peca(i, j, i+j+1));
     }
 
     // Embaralha as peças
     pecas = embaralhar_pecas(pecas);
-
+    
     // Distribui as peças
-    pecas.forEach((peca, index) => {
-        if(index < 3){
-            pecas[index].numero_peca = qnt_pecas_coletadas_bot;
-            mao_bot.push(pecas[index]);
-            desenhar_peca_mao_bot(peca);
+    for (let i = 0; i < num_final_pecas * 2; i++) {
+        if (i < num_final_pecas) {
+            // Peças do bot
+            pecas[i].numero_peca = qnt_pecas_coletadas_bot;
+            mao_bot.push(pecas[i]);
+            desenhar_peca_mao_bot(pecas[i]);
             qnt_pecas_coletadas_bot++;
             qnt_pecas_atual_bot++;
-        }else if(index < 6) {
-            pecas[index].numero_peca = qnt_pecas_coletadas_jogador;
-            mao_jogador.push(pecas[index]);
-            desenhar_peca_mao_jogador(peca);
+        } else {
+            // Peças do jogador
+            pecas[i].numero_peca = qnt_pecas_coletadas_jogador;
+            mao_jogador.push(pecas[i]);
+            desenhar_peca_mao_jogador(pecas[i]);
             qnt_pecas_coletadas_jogador++;
             qnt_pecas_atual_jogador++;
         }
-    });
+    }
 
-    pecas_mesa.push(pecas[6]);
-    desenhar_peca_mesa(null, pecas[6], [])
-    cemiterio = [pecas[7], pecas[8], pecas[9]];
+    pecas_mesa.push(pecas[num_final_pecas * 2]); // Pega a primeira peça que sobrou para ser a inicial
+    desenhar_peca_mesa(null, pecas_mesa[0], [])
+    cemiterio.push(...pecas.splice(num_final_pecas * 2 + 1, pecas.length)); // Resto das peças para o cemitério
     desenhar_peca_cemiterio();
     
 
-    // Dá inicio à primeira rodada da partidade
+    // Dá inicio à primeira rodada da partida
     if(verificar_rodada(true)) {
         // Jogador escolhe a sua jogada
     }else {
@@ -104,19 +107,14 @@ function finalizarPartida() {
 
 // Bot faz sua jogada
 function rodada_bot() {
-    for(let i = 0; i < movimentos_disponiveis.length; i++) {
-        let movimentos_peca = movimentos_disponiveis[i];
-
-        if(movimentos_peca.length > 0) {
-            marcar_movimento(false, i, movimentos_peca[0]);
-            break;
-        }
+    const movimento_bot = agente_bot();
+    if(movimento_bot) {
+        marcar_movimento(false, movimento_bot.index_peca_mao, movimento_bot.movimento);
     }
 
     if(!tem_ganhador && verificar_rodada(true)) {
         // Jogador escolhe a sua jogada
     }else {
-        // Bot vai verificar a rodada e, se possível, realizar um movimento novamente
         if(!tem_ganhador && verificar_rodada(false)){
             rodada_bot();
         }else {
@@ -333,10 +331,10 @@ function desenhar_peca_mao_bot(peca) {
     let index_peca = qnt_pecas_coletadas_bot;
     area_bot.innerHTML += `<div onclick="" class="peca peca_em_pe" id="peca_bot_index_${index_peca}">
                                 <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
-                                    ?
+                                    ${peca.valor_direita}
                                 </div>
                                 <div class="pedaco_peca pedaco_peca_em_pe">
-                                    ?
+                                    ${peca.valor_esquerda}
                                 </div>
                             </div>`;
 }
@@ -417,6 +415,68 @@ function posicinar_na_mesa(id) {
         }
     }
 }
+
+// Função para contar peças de um determinado valor
+function contar_pecas(valor) {
+    let contagem = 0;
+
+    // Contar peças na mesa
+    pecas_mesa.forEach(peca => {
+        if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
+            contagem++;
+        }
+    });
+
+    // Contar peças na mão
+    mao_jogador.forEach(peca => {
+        if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
+            contagem++;
+        }
+    });
+
+    return contagem;
+}
+
+// Agente
+function agente_bot() {
+    let melhor_jogada = null;
+    let melhor_impacto = -1; // Mede a melhor jogada e começa negativo pro valor que vier ser sempre maior
+
+    // Encontra o melhor movimento possível
+    movimentos_disponiveis.forEach((movimentos_peca, index) => {
+        movimentos_peca.forEach(movimento => {
+            const peca_mao = mao_bot[index];
+            const peca_mesa = pecas_mesa[movimento[0]];
+
+            let valor_mao = peca_mao.valor_esquerda + peca_mao.valor_direita;
+            let valor_mesa = peca_mesa.valor_esquerda + peca_mesa.valor_direita;
+
+            // Contar quantas peças de cada valor estão na mesa e na mão do jogador
+            let valor_jogado = movimento[1] === 0 ? peca_mesa.valor_esquerda : peca_mesa.valor_direita;
+            let contagem_pecas_valor = contar_pecas(valor_jogado);
+
+            // Calcular o impacto do movimento. O bot prefere jogar peças que podem fechar o jogador
+            let impacto_movimento = 0;
+            if (contagem_pecas_valor >= 3) { // Se há 3 ou mais peças do mesmo valor
+                impacto_movimento = 1;
+            }
+
+            // Escolhe o movimento que tem o melhor valor de peça e maior impacto
+            if (melhor_jogada === null || impacto_movimento > melhor_impacto) {
+                melhor_jogada = {
+                    index_peca_mao: index,
+                    movimento: movimento,
+                    valor_mao: valor_mao,
+                    valor_mesa: valor_mesa
+                };
+                melhor_impacto = impacto_movimento;
+            }
+        });
+    });
+
+    return melhor_jogada;
+}
+
 
 // Run
 iniciar_jogo();
