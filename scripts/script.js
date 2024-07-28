@@ -8,7 +8,7 @@ class Peca {
     }
 }
 
-let num_final_pecas = 6; // Controla qual o tipo de dominó (um dominó padrão é 6, ou seja, os numeros são de 0 a 6)
+let num_final_pecas = 3; // Controla qual o tipo de dominó (um dominó padrão é 6, ou seja, os numeros são de 0 a 6)
 let pecas = [];
 let mao_bot = [];
 let mao_jogador = [];
@@ -209,7 +209,6 @@ function verificar_peca(peca_mao) {
     if(peca_mao){
         pecas_mesa.forEach((peca_mesa, index) => {
             if(peca_mesa.esquerda_livre) {
-                // Lembrar de marcar a peça como disponível para jogada quando for fazer a parte gráfica
                 if(peca_mao.valor_esquerda == peca_mesa.valor_esquerda) {
                     movimentos.push([index, 0, 0]);
                 }else if(peca_mao.valor_direita == peca_mesa.valor_esquerda) {
@@ -218,7 +217,6 @@ function verificar_peca(peca_mao) {
             }
     
             if(peca_mesa.direita_livre) {
-                // Lembrar de marcar a peça como disponível para jogada quando for fazer a parte gráfica
                 if(peca_mao.valor_esquerda == peca_mesa.valor_direita) {
                     movimentos.push([index, 1, 0]);
                 }else if(peca_mao.valor_direita == peca_mesa.valor_direita) {
@@ -293,8 +291,7 @@ function desenhar_peca_mesa(vez_jogador, peca, movimento) {
     else
         cor_peca = "peca_inicial";
     
-    // Peça em pé
-    if(peca.valor_direita == peca.valor_esquerda) {
+    if(peca.valor_direita == peca.valor_esquerda) { // Peça em pé
         desenho_peca = `<div class="peca peca_em_pe ${cor_peca}" id="peca_index_${index_peca}">
                             <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
                                 ${peca.valor_direita}
@@ -303,7 +300,7 @@ function desenhar_peca_mesa(vez_jogador, peca, movimento) {
                                 ${peca.valor_esquerda}
                             </div>
                         </div>`;
-    } else { // Peça em deitada
+    } else { // Peça deitada
         desenho_peca = `<div class="peca peca_deitada ${cor_peca}" id="peca_index_${index_peca}">
                             <div class="pedaco_peca pedaco_peca_deitada">
                                 ${peca.valor_esquerda}
@@ -428,7 +425,7 @@ function contar_pecas(valor) {
     });
 
     // Contar peças na mão
-    mao_jogador.forEach(peca => {
+    mao_bot.forEach(peca => {
         if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
             contagem++;
         }
@@ -476,7 +473,6 @@ function agente_bot() {
 
     return melhor_jogada;
 }
-
 
 // Run
 iniciar_jogo();
