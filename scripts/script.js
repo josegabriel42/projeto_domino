@@ -8,257 +8,228 @@ class Peca {
     }
 }
 
-let num_final_pecas = 3; // Controla qual o tipo de dominó (um dominó padrão é 6, ou seja, os numeros são de 0 a 6)
-let pecas = [];
-let mao_bot = [];
-let mao_jogador = [];
+let valor_maior_peca = 3;
+let mesa = [];
+let bot = [];
+let jogador = [];
+let cemiterio = [];
+// let pecas_contadas = []; // Peças visíveis para o agente
+let pecas_ponta = []; // Peças na mesa com movimentos disponíveis
+let movimentos_disponiveis = []; // Lista com os movimentos disponíveis na rodada
+let qnt_movimentos_disponiveis = 0; // Quantidade disponível na rodada
 let qnt_pecas_coletadas_bot = 0;
 let qnt_pecas_coletadas_jogador = 0;
-let qnt_pecas_atual_jogador = 0;
 let qnt_pecas_atual_bot = 0;
-let peca_inicial = null;
-let pecas_mesa = [];
-let cemiterio = [];
-let movimentos_disponiveis = [];
-let qnt_movimentos_disponiveis = 0;
+let qnt_pecas_atual_jogador = 0;
 let tem_ganhador = false;
-let vencedor = "";
 
+// Organiza e distribui as peças
+function iniciar() {
+    let pecas = [];
+    let vetor_tmp = [];
+    let vetor_tmp_2 = [];
+    let tmp;
 
-// Funções
-
-function iniciar_jogo() {
-    // Gera as peças
-    pecas = [];
-    for(let i = 0; i <= num_final_pecas; i++) {
-        for(let j = i; j <= num_final_pecas; j++)
+    // Gerando e embaralhando as peças
+    for(let i = 0; i <= valor_maior_peca; i++) {
+        // pecas_contadas[i] = [];
+        for(let j = i; j <= valor_maior_peca; j++)
             pecas.push(new Peca(i, j, i+j+1));
     }
 
-    // Embaralha as peças
-    pecas = embaralhar_pecas(pecas);
-    
-    // Distribui as peças
-    for (let i = 0; i < num_final_pecas * 2; i++) {
-        if (i < num_final_pecas) {
-            // Peças do bot
+    for(let i = 0; i < pecas.length; i++)
+        vetor_tmp[i] = i+1;
+
+    vetor_tmp.sort(function() { return 0.5 - Math.random(); });
+
+    for(let i = 0; i < pecas.length; i++)
+        vetor_tmp_2[i] = pecas[vetor_tmp[i]-1];
+
+    pecas = vetor_tmp_2;
+
+    // Distribuindo peças
+    for (let i = 0; i < valor_maior_peca * 2; i++) {
+        if (i < valor_maior_peca) { // Agente
             pecas[i].numero_peca = qnt_pecas_coletadas_bot;
-            mao_bot.push(pecas[i]);
-            desenhar_peca_mao_bot(pecas[i]);
+            // atualizar_contagem(pecas[i]);
+            bot.push(pecas[i]);
+            desenhar_pecas_mao(false, pecas[i]); // "Desenha" as informações na tela
             qnt_pecas_coletadas_bot++;
             qnt_pecas_atual_bot++;
-        } else {
-            // Peças do jogador
+        }else { // Jogador
             pecas[i].numero_peca = qnt_pecas_coletadas_jogador;
-            mao_jogador.push(pecas[i]);
-            desenhar_peca_mao_jogador(pecas[i]);
+            jogador.push(pecas[i]);
+            desenhar_pecas_mao(true, pecas[i]); // "Desenha" as informações na tela
             qnt_pecas_coletadas_jogador++;
             qnt_pecas_atual_jogador++;
         }
     }
 
-    pecas_mesa.push(pecas[num_final_pecas * 2]); // Pega a primeira peça que sobrou para ser a inicial
-    desenhar_peca_mesa(null, pecas_mesa[0], [])
-    cemiterio.push(...pecas.splice(num_final_pecas * 2 + 1, pecas.length)); // Resto das peças para o cemitério
-    desenhar_peca_cemiterio();
-    
+    mesa.push(pecas[valor_maior_peca * 2]); // Pega a primeira peça que sobrou para ser a inicial
+    cemiterio.push(...pecas.splice(valor_maior_peca * 2 + 1, pecas.length)); // Resto das peças para o cemitério
+    tmp = mesa[0];
+    tmp.index_peca_mesa = 0;
+    pecas_ponta[0] = tmp;
 
-    // Dá inicio à primeira rodada da partida
-    if(verificar_rodada(true)) {
-        // Jogador escolhe a sua jogada
-    }else {
-        // Bot vai verificar a rodada e, se possível, realizar um movimento
-        
-        if(verificar_rodada(false)){
+    // "Desenha" as informações na tela
+    desenhar_peca_mesa(null, mesa[0], []);
+    atualizar_cemiterio();
+
+    // Primeira verificação do jogo
+    conferir_resultado(true);
+}
+
+function conferir_resultado(eh_jogador) {
+    if(!tem_ganhador && verificar_rodada(eh_jogador)) {
+        // Abre para o jogador ou passa para o bot
+        if(eh_jogador)
+            rodada_jogador();
+        else
             rodada_bot();
+    }else {
+        // Segunda verificação para garantir que o jogo não está trancado
+        if(!tem_ganhador && verificar_rodada(!eh_jogador)) {
+            if(eh_jogador)
+                rodada_bot();
+            else
+                rodada_jogador();
         }else {
-            // Sem jogadas disponíveis. Fim da partida.
-            tem_ganhador = true;
-            finalizarPartida();
+            finalizar();
         }
     }
 }
 
-function finalizarPartida() {
+function finalizar() {
     const campo_mensagem = document.getElementById("mensagem_vencedor");
     const area_mesa = document.getElementById("area_mesa");
-    let bot = jogador = 0;
-    
-    mao_bot.forEach(peca => {
+    let pontos_bot = 0;
+    let pontos_jogador = 0;
+    let vencedor = "";
+
+    bot.forEach(peca => {
         if(peca != null)
-            bot += peca.valor_direita + peca.valor_esquerda + 1;
+            pontos_bot += peca.valor_direita + peca.valor_esquerda + 1;
     });
 
-    mao_jogador.forEach(peca => {
+    jogador.forEach(peca => {
         if(peca != null)
-            jogador += peca.valor_direita + peca.valor_esquerda + 1;
+            pontos_jogador += peca.valor_direita + peca.valor_esquerda + 1;
     });
 
-    if(bot < jogador) {
-        vencedor = "Bot";
-        area_mesa.style.backgroundColor = "red";
-    }else {
-        vencedor = "Jogador";
-        area_mesa.style.backgroundColor = "dodgerblue";
-    }
-
+    vencedor = pontos_bot > pontos_jogador ? "Jogador" : "Agente"
+    area_mesa.style.backgroundColor = pontos_bot > pontos_jogador ? "dodgerblue" : "red";
     campo_mensagem.innerHTML = `<h2 style="text-align:center">Vencedor ${vencedor}</h2>`;
 }
 
-// Bot faz sua jogada
 function rodada_bot() {
     const movimento_bot = agente_bot();
-    if(movimento_bot) {
+    if(movimento_bot)
         marcar_movimento(false, movimento_bot.index_peca_mao, movimento_bot.movimento);
-    }
 
-    if(!tem_ganhador && verificar_rodada(true)) {
-        // Jogador escolhe a sua jogada
-    }else {
-        if(!tem_ganhador && verificar_rodada(false)){
-            rodada_bot();
-        }else {
-            // Sem jogadas disponíveis. Fim da partida.
-            tem_ganhador = true;
-            finalizarPartida();
-        }
-    }
+    conferir_resultado(true);
 }
 
-// Arruma o cenário para o jogador
 function rodada_jogador() {
-    if(!tem_ganhador && verificar_rodada(false)) {
-        for(let i = 0; i < movimentos_disponiveis.length; i++) {
-            let movimentos_peca = movimentos_disponiveis[i];
-    
-            if(movimentos_peca.length > 0) {
-                marcar_movimento(false, i, movimentos_peca[0]);
-                break;
-            }
-        }
-    }
+
 }
 
-// Retorna true se houver movimentos disponíveis, se não retorna false
-function verificar_rodada(vez_jogador){
-    let mao = vez_jogador ? mao_jogador : mao_bot;
+function verificar_rodada(eh_jogador) {
+    let mao = eh_jogador ? jogador : bot;
+    let peca_cemiterio = null;
+    let tmp = 0;
+
     movimentos_disponiveis = [];
     qnt_movimentos_disponiveis = 0;
 
     mao.forEach((peca, index) => {
-        movimentos_disponiveis[index] = verificar_peca(peca);
+        movimentos_disponiveis[index] = verificar_movimento(peca);
         qnt_movimentos_disponiveis += movimentos_disponiveis[index].length;
     });
 
     while(qnt_movimentos_disponiveis == 0 && cemiterio.length > 0) {
         peca_cemiterio = cemiterio.pop();
 
-        if(vez_jogador) {
-            desenhar_peca_mao_jogador(peca_cemiterio);
+        if(eh_jogador) {
             peca_cemiterio.numero_peca = qnt_pecas_coletadas_jogador;
+            desenhar_pecas_mao(eh_jogador, peca_cemiterio);
             qnt_pecas_coletadas_jogador++;
             qnt_pecas_atual_jogador++;
         }else {
-            desenhar_peca_mao_bot(peca_cemiterio);
             peca_cemiterio.numero_peca = qnt_pecas_coletadas_bot;
+            desenhar_pecas_mao(eh_jogador, peca_cemiterio);
             qnt_pecas_coletadas_bot++;
             qnt_pecas_atual_bot++;
         }
 
         mao.push(peca_cemiterio);
-
-        temp = mao.length -1;
-        movimentos_disponiveis[temp] = verificar_peca(peca_cemiterio);
-        qnt_movimentos_disponiveis += movimentos_disponiveis[temp].length;
+        tmp = mao.length -1;
+        movimentos_disponiveis[tmp] = verificar_movimento(peca_cemiterio);
+        qnt_movimentos_disponiveis += movimentos_disponiveis[tmp].length;
     }
 
-    desenhar_peca_cemiterio();
+    atualizar_cemiterio();
 
-    if(vez_jogador)
-        mao_jogador = mao;
+    if(eh_jogador)
+        jogador = mao;
     else
-        mao_bot = mao;
-
+        bot = mao;
+    
     return (qnt_movimentos_disponiveis > 0);
 }
 
-function embaralhar_pecas(pecas) {
-    const nova_ordem = [];
-    for(let i = 0; i < pecas.length; i++)
-        nova_ordem[i] = i+1;
-        
-    nova_ordem.sort(function() { return 0.5 - Math.random(); });
-    const pecas_embaralhadas = [];
-
-    for(let i = 0; i < pecas.length; i++)
-        pecas_embaralhadas[i] = pecas[nova_ordem[i]-1];
-
-    return pecas_embaralhadas;
-}
-
-/*
-  Verifica se existem movimentos para a peça e retorna um vetor de vetores da forma:
-  [
-    [index_peca_mesa, lado_movimento, lado_movimento_peca_mao],
-    [index_peca_mesa, lado_movimento, lado_movimento_peca_mao],
-  ]
-*/
-function verificar_peca(peca_mao) {
+function verificar_movimento(peca) {
     let movimentos = [];
 
-    if(peca_mao){
-        pecas_mesa.forEach((peca_mesa, index) => {
-            if(peca_mesa.esquerda_livre) {
-                if(peca_mao.valor_esquerda == peca_mesa.valor_esquerda) {
-                    movimentos.push([index, 0, 0]);
-                }else if(peca_mao.valor_direita == peca_mesa.valor_esquerda) {
-                    movimentos.push([index, 0, 1]);
-                }
+    if(peca) {
+        pecas_ponta.forEach(peca_ponta => {
+            if(peca_ponta.esquerda_livre) {
+                if(peca_ponta.valor_esquerda == peca.valor_esquerda)
+                    movimentos.push([peca_ponta.index_peca_mesa, 0, 0]);
+                else if(peca_ponta.valor_esquerda == peca.valor_direita)
+                    movimentos.push([peca_ponta.index_peca_mesa, 0, 1]);
             }
-    
-            if(peca_mesa.direita_livre) {
-                if(peca_mao.valor_esquerda == peca_mesa.valor_direita) {
-                    movimentos.push([index, 1, 0]);
-                }else if(peca_mao.valor_direita == peca_mesa.valor_direita) {
-                    movimentos.push([index, 1, 1]);
-                }
+            
+            if(peca_ponta.direita_livre){
+                if(peca_ponta.valor_direita == peca.valor_esquerda)
+                    movimentos.push([peca_ponta.index_peca_mesa, 1, 0]);
+                else if(peca_ponta.valor_direita == peca.valor_direita)
+                    movimentos.push([peca_ponta.index_peca_mesa, 1, 1]);
             }
-         });
+        });
     }
 
-     return movimentos;
+    return movimentos;
 }
 
 // Atualiza as variáveis para poder realizar o movimento
-function marcar_movimento(vez_jogador, index_peca_mao, movimento) {
+function marcar_movimento(eh_jogador, index_peca_mao, movimento) {
     let peca_mao = null;
-    let temp = null;
+    let tmp = null;
 
-    if(vez_jogador) {
-        peca_mao = mao_jogador[index_peca_mao];
-        mao_jogador[index_peca_mao] = null;
-        remover_peca_mao_jogador(peca_mao.numero_peca);
+    if(eh_jogador) {
+        peca_mao = jogador[index_peca_mao];
+        jogador[index_peca_mao] = null;
         qnt_pecas_atual_jogador--;
-        tem_ganhador = qnt_pecas_atual_jogador == 0 ? true : false
-        
+        tem_ganhador = qnt_pecas_atual_jogador == 0 ? true : false;
     }else {
-        peca_mao = mao_bot[index_peca_mao];
-        mao_bot.splice(index_peca_mao, 1);
-        remover_peca_mao_bot(peca_mao.numero_peca);
+        peca_mao = bot[index_peca_mao];
+        bot.splice(index_peca_mao, 1);
         qnt_pecas_atual_bot--;
-        tem_ganhador = qnt_pecas_atual_bot == 0 ? true : false
+        tem_ganhador = qnt_pecas_atual_bot == 0 ? true : false;
     }
 
+    remover_peca_mao(eh_jogador, peca_mao.numero_peca);
+
     if(movimento[1] == 0)
-        pecas_mesa[movimento[0]].esquerda_livre = false;
+        mesa[movimento[0]].esquerda_livre = false;
     else
-        pecas_mesa[movimento[0]].direita_livre = false;
+        mesa[movimento[0]].direita_livre = false;
 
     if(movimento[1] == movimento[2]) {
         // "Gira a peça" para facilitar detalhe de implementação do código
-        temp = peca_mao.valor_direita;
+        tmp = peca_mao.valor_direita;
         peca_mao.valor_direita = peca_mao.valor_esquerda;
-        peca_mao.valor_esquerda = temp;
+        peca_mao.valor_esquerda = tmp;
 
         if(movimento[2] == 0)
             peca_mao.direita_livre = false;
@@ -271,23 +242,80 @@ function marcar_movimento(vez_jogador, index_peca_mao, movimento) {
             peca_mao.direita_livre = false;
     }
 
-
     movimentos_disponiveis = [];
     qnt_movimentos_disponiveis = 0;
-    pecas_mesa.push(peca_mao);
-    desenhar_peca_mesa(vez_jogador, peca_mao, movimento);
+    mesa.push(peca_mao);
+    tmp = peca_mao;
+    tmp.index_peca_mesa = mesa.length-1;
+
+    // Atualiza o vetor que aponta para as peças na mesa disponíveis para movimento
+    if(!mesa[movimento[0]].esquerda_livre && !mesa[movimento[0]].direita_livre) {
+        if(mesa[movimento[0]] == pecas_ponta[0])
+            pecas_ponta[0] = mesa[mesa.length-1];
+        else
+            pecas_ponta[1] = mesa[mesa.length-1];
+    }else {
+        if(mesa[movimento[0]] == pecas_ponta[0])
+            pecas_ponta[1] = mesa[mesa.length-1];
+        else
+            pecas_ponta[0] = mesa[mesa.length-1];
+    }
+    
+    desenhar_peca_mesa(eh_jogador, peca_mao, movimento);
+    // atualizar_contagem(peca_mao);
 }
 
-// Manipulação do DOM
-function desenhar_peca_mesa(vez_jogador, peca, movimento) {
+function posicinar_na_mesa(id) {
+    const area_movimentos = document.getElementById("quadro_movimentos");
+    let info = id.split("_");
+    let peca_origem = Number(info[0]);
+    let movimento = [Number(info[1]), Number(info[2]), Number(info[3])];
+
+    marcar_movimento(true, peca_origem, movimento);
+    area_movimentos.innerHTML = "";
+    
+    conferir_resultado(false);
+}
+
+function desenhar_pecas_mao(eh_jogador, peca) {
+    let funcao_ao_clicar = "";
+    let tipo_id_peca = "bot";
+    let tipo_class_peca = "";
+    let index_peca = qnt_pecas_coletadas_bot;
+    
+    if(eh_jogador) {
+        funcao_ao_clicar = "desenhar_area_movimentos(id)";
+        tipo_id_peca = "jogador";
+        tipo_class_peca = "peca_mao_jogador";
+        index_peca = qnt_pecas_coletadas_jogador;
+    }
+
+    const area_mao = document.getElementById(("area_pecas_" + tipo_id_peca));
+    area_mao.innerHTML += `<div onclick="${funcao_ao_clicar}" class="peca peca_em_pe ${tipo_class_peca}" id="peca_${tipo_id_peca}_index_${index_peca++}">
+                                <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
+                                    ${peca.valor_direita}
+                                </div>
+                                <div class="pedaco_peca pedaco_peca_em_pe">
+                                    ${peca.valor_esquerda}
+                                </div>
+                            </div>`;
+}
+
+function remover_peca_mao(eh_jogador, index_peca_mao) {
+    const tipo_id_peca = eh_jogador ? "jogador" : "bot";
+    const peca = document.getElementById(("peca_" + tipo_id_peca + "_index_" + index_peca_mao));
+    peca.remove();
+}
+
+function desenhar_peca_mesa(eh_jogador, peca, movimento) {
     const area_mesa = document.getElementById("area_mesa");
     let cor_peca = "";
-    let index_peca = pecas_mesa.length - 1;
+    let index_peca = mesa.length - 1;
     let desenha_mesa = area_mesa.innerHTML;
     let desenho_peca = null;
 
-    if(vez_jogador !== null) 
-        cor_peca = vez_jogador ? "peca_jogador" : "peca_bot";
+    if(eh_jogador !== null) 
+        cor_peca = eh_jogador ? "peca_jogador" : "peca_bot";
     else
         cor_peca = "peca_inicial";
     
@@ -323,49 +351,7 @@ function desenhar_peca_mesa(vez_jogador, peca, movimento) {
     }
 }
 
-function desenhar_peca_mao_bot(peca) {
-    const area_bot = document.getElementById("area_pecas_bot");
-    let index_peca = qnt_pecas_coletadas_bot;
-    area_bot.innerHTML += `<div onclick="" class="peca peca_em_pe" id="peca_bot_index_${index_peca}">
-                                <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
-                                    ${peca.valor_direita}
-                                </div>
-                                <div class="pedaco_peca pedaco_peca_em_pe">
-                                    ${peca.valor_esquerda}
-                                </div>
-                            </div>`;
-}
-
-function desenhar_peca_mao_jogador(peca) {
-    const area_jogador = document.getElementById("area_pecas_jogador");
-    let index_peca = qnt_pecas_coletadas_jogador;
-    area_jogador.innerHTML += `<div onclick="desenhar_area_movimentos(id)" class="peca peca_em_pe peca_mao_jogador" id="peca_jogador_index_${index_peca}">
-                                <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
-                                    ${peca.valor_direita}
-                                </div>
-                                <div class="pedaco_peca pedaco_peca_em_pe">
-                                    ${peca.valor_esquerda}
-                                </div>
-                            </div>`;
-}
-
-function remover_peca_mao_bot(index_peca_mao) {
-    const peca = document.getElementById("peca_bot_index_" + index_peca_mao);
-    peca.remove();
-}
-
-function remover_peca_mao_jogador(index_peca_mao) {
-    const peca = document.getElementById(("peca_jogador_index_" + index_peca_mao));
-    peca.remove();
-}
-
-
-function desenhar_peca_cemiterio() {
-    const area_cemiterio = document.getElementById("qnt_pecas_cemiterio");
-    area_cemiterio.innerHTML = cemiterio.length;
-}
-
-function desenhar_area_movimentos(id_peca_mao){    
+function desenhar_area_movimentos(id_peca_mao){
     const area_movimentos = document.getElementById("quadro_movimentos");
     let peca = null;
     area_movimentos.innerHTML = "";
@@ -377,8 +363,7 @@ function desenhar_area_movimentos(id_peca_mao){
     movimentos_disponiveis[index_peca_mao].forEach(movimento => {
         id_peca = index_peca_mao + "_" + movimento[0] + "_" + movimento[1] + "_" + movimento[2];
         index_peca_alvo = movimento[0];
-
-        peca = pecas_mesa[index_peca_alvo];
+        peca = mesa[index_peca_alvo];
         area_movimentos.innerHTML += `<div onclick="posicinar_na_mesa(id)" class="peca peca_em_pe peca_area_movimento" id="${id_peca}">
                                         <div class="pedaco_peca pedaco_peca_em_pe pedaco_peca_cima">
                                             ${peca.valor_direita}
@@ -390,48 +375,9 @@ function desenhar_area_movimentos(id_peca_mao){
     });
 }
 
-function posicinar_na_mesa(id) {
-    const area_movimentos = document.getElementById("quadro_movimentos");
-    let info = id.split("_");
-    let peca_origem = Number(info[0]);
-    let movimento = [Number(info[1]), Number(info[2]), Number(info[3])];
-
-    marcar_movimento(true, peca_origem, movimento);
-    area_movimentos.innerHTML = "";
-    
-    if(!tem_ganhador && verificar_rodada(false)) {
-        // Bot faz sua jogada
-        rodada_bot();
-    }else {
-        if(!tem_ganhador && verificar_rodada(true)){
-            // Jogador escolhe a sua jogada
-        }else {
-            // Sem jogadas disponíveis. Fim da partida.
-            tem_ganhador = true;
-            finalizarPartida();
-        }
-    }
-}
-
-// Função para contar peças de um determinado valor
-function contar_pecas(valor) {
-    let contagem = 0;
-
-    // Contar peças na mesa
-    pecas_mesa.forEach(peca => {
-        if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
-            contagem++;
-        }
-    });
-
-    // Contar peças na mão
-    mao_bot.forEach(peca => {
-        if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
-            contagem++;
-        }
-    });
-
-    return contagem;
+function atualizar_cemiterio() {
+    const area_cemiterio = document.getElementById("qnt_pecas_cemiterio");
+    area_cemiterio.innerHTML = cemiterio.length;
 }
 
 // Agente
@@ -442,8 +388,8 @@ function agente_bot() {
     // Encontra o melhor movimento possível
     movimentos_disponiveis.forEach((movimentos_peca, index) => {
         movimentos_peca.forEach(movimento => {
-            const peca_mao = mao_bot[index];
-            const peca_mesa = pecas_mesa[movimento[0]];
+            const peca_mao = bot[index];
+            const peca_mesa = mesa[movimento[0]];
 
             let valor_mao = peca_mao.valor_esquerda + peca_mao.valor_direita;
             let valor_mesa = peca_mesa.valor_esquerda + peca_mesa.valor_direita;
@@ -474,5 +420,36 @@ function agente_bot() {
     return melhor_jogada;
 }
 
+// Função para contar peças de um determinado valor
+function contar_pecas(valor) {
+    let contagem = 0;
+
+    // Contar peças na mesa
+    mesa.forEach(peca => {
+        if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
+            contagem++;
+        }
+    });
+
+    // Contar peças na mão
+    bot.forEach(peca => {
+        if (peca && (peca.valor_esquerda === valor || peca.valor_direita === valor)) {
+            contagem++;
+        }
+    });
+
+    return contagem;
+}
+
+/*
+function atualizar_contagem(peca) {
+    if(pecas_contadas[peca.valor_direita].indexOf(peca.valor_esquerda) === -1)
+        pecas_contadas[peca.valor_direita].push(peca.valor_esquerda);
+    
+    if(pecas_contadas[peca.valor_esquerda].indexOf(peca.valor_direita) === -1)
+        pecas_contadas[peca.valor_esquerda].push(peca.valor_direita);
+}
+*/
+
 // Run
-iniciar_jogo();
+iniciar();
