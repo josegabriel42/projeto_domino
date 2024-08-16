@@ -83,7 +83,7 @@ function iniciar() {
 
     // "Desenha" as informações na tela
     desenhar_peca_mesa(null, mesa[0], []);
-    atualizar_cemiterio();
+    atualizar_cemiterio(true, 0);
 
     // Primeira verificação do jogo
     conferir_resultado(true);
@@ -110,11 +110,10 @@ function conferir_resultado(eh_jogador) {
 }
 
 function finalizar() {
-    const campo_mensagem = document.getElementById("mensagem_vencedor");
+    const area_mensagem_vitoria = document.getElementById("mensagem_vitoria");
     const area_mesa = document.getElementById("area_mesa");
     let pontos_bot = 0;
     let pontos_jogador = 0;
-    let vencedor = "";
 
     bot.forEach(peca => {
         if(peca != null)
@@ -126,9 +125,14 @@ function finalizar() {
             pontos_jogador += peca.valor_direita + peca.valor_esquerda + 1;
     });
 
-    vencedor = pontos_bot > pontos_jogador ? "Jogador" : "Agente"
-    area_mesa.style.backgroundColor = pontos_bot > pontos_jogador ? "dodgerblue" : "red";
-    campo_mensagem.innerHTML = `<h2 style="text-align:center">Vencedor ${vencedor}</h2>`;
+    if(pontos_bot > pontos_jogador) {
+        area_mesa.style.backgroundColor = "dodgerblue";
+        area_mensagem_vitoria.innerHTML = `<h2 style="text-align:center; color:dodgerblue">Vitória!</h2>`;
+    }else {
+        area_mesa.style.backgroundColor = "red";
+        area_mensagem_vitoria.innerHTML = `<h2 style="text-align:center; color:red">Derrota!</h2>`;
+    }
+
 }
 
 function rodada_bot() {
@@ -146,6 +150,7 @@ function rodada_jogador() {
 function verificar_rodada(eh_jogador) {
     let mao = eh_jogador ? jogador : bot;
     let peca_cemiterio = null;
+    let qnt_pecas_cemiterio_mao = 0;
     let tmp = 0;
 
     movimentos_disponiveis = [];
@@ -158,6 +163,7 @@ function verificar_rodada(eh_jogador) {
 
     while(qnt_movimentos_disponiveis == 0 && cemiterio.length > 0) {
         peca_cemiterio = cemiterio.pop();
+        qnt_pecas_cemiterio_mao++;
 
         if(eh_jogador) {
             peca_cemiterio.numero_peca = qnt_pecas_coletadas_jogador;
@@ -177,7 +183,7 @@ function verificar_rodada(eh_jogador) {
         qnt_movimentos_disponiveis += movimentos_disponiveis[tmp].length;
     }
 
-    atualizar_cemiterio();
+    atualizar_cemiterio(eh_jogador, qnt_pecas_cemiterio_mao);
 
     if(eh_jogador)
         jogador = mao;
@@ -385,9 +391,19 @@ function desenhar_area_movimentos(id_peca_mao){
     });
 }
 
-function atualizar_cemiterio() {
+function atualizar_cemiterio(eh_jogador, qnt_pecas_cemiterio_mao) {
     const area_cemiterio = document.getElementById("qnt_pecas_cemiterio");
+    const area_avisos = document.getElementById("avisos");
+    let cor = eh_jogador ? "dodgerblue" : "red";
+    
     area_cemiterio.innerHTML = cemiterio.length;
+    if(qnt_pecas_cemiterio_mao > 0)
+        area_avisos.innerHTML = `<h3 style="text-align:center; color: ${cor}">+${qnt_pecas_cemiterio_mao} peça(s) adicionada(s) do cemitério</h3>`;
+
+    setTimeout(() => {
+        area_avisos.innerHTML = ``;
+    }, 3000);
+    
 }
 
 // Agente
