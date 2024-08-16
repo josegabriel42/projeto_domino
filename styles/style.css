@@ -74,6 +74,7 @@ body {
     height: 200px;
     width: 80%;
     border: 2px solid black;
+    overflow: scroll;
 }
 
 .area_jogo {
@@ -90,6 +91,7 @@ body {
     border: 2px solid red;
     height: 120px;
     width: 40%;
+    overflow: scroll;
 }
 
 .area_pecas_jogador {
@@ -97,6 +99,7 @@ body {
     border: 2px solid steelblue;
     height: 120px;
     width: 40%;
+    overflow: scroll;
 }
 
 .area_cemiterio {

@@ -23,6 +23,16 @@ let qnt_pecas_atual_bot = 0;
 let qnt_pecas_atual_jogador = 0;
 let tem_ganhador = false;
 
+// Possibilita o jogador escolher a quantidade de peças disponível no jogo
+function escolherConfiguracoes() {
+    let qnt = Number(prompt("Maior valor que um lado de uma peça pode assumir (valor mínimo 2, máximo 6 e padrão 3):"));
+    
+    if(!isNaN(qnt) && qnt != null && qnt >= 2 && qnt <= 6)
+        valor_maior_peca = qnt;
+
+    iniciar();
+}
+
 // Organiza e distribui as peças
 function iniciar() {
     let pecas = [];
@@ -452,4 +462,5 @@ function atualizar_contagem(peca) {
 */
 
 // Run
-iniciar();
+escolherConfiguracoes();
+
